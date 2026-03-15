@@ -1,0 +1,629 @@
+<!DOCTYPE html>
+<html lang="cs" data-theme="system">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>LaskaKit LED Mapa</title>
+<style>
+  :root{
+    --bg:#1a1a2e;--card-bg:#16213e;--card-border:#1a3a5c;
+    --text:#e0e0e0;--text-secondary:#90a4ae;--accent:#4fc3f7;
+    --input-bg:#0f1a30;--input-border:#2a4a6b;--stat-border:#1a3a5c;
+    --footer:#546e7a;--range-bg:#2a4a6b;--thumb-border:#16213e;--title:#fff;
+    color-scheme:dark
+  }
+  [data-theme="light"]{
+    --bg:#f0f2f5;--card-bg:#ffffff;--card-border:#d0d7de;
+    --text:#1a1a2e;--text-secondary:#57606a;--accent:#0288d1;
+    --input-bg:#f6f8fa;--input-border:#d0d7de;--stat-border:#d0d7de;
+    --footer:#8b949e;--range-bg:#d0d7de;--thumb-border:#ffffff;--title:#1a1a2e;
+    color-scheme:light
+  }
+  @media(prefers-color-scheme:light){
+    [data-theme="system"]{
+      --bg:#f0f2f5;--card-bg:#ffffff;--card-border:#d0d7de;
+      --text:#1a1a2e;--text-secondary:#57606a;--accent:#0288d1;
+      --input-bg:#f6f8fa;--input-border:#d0d7de;--stat-border:#d0d7de;
+      --footer:#8b949e;--range-bg:#d0d7de;--thumb-border:#ffffff;--title:#1a1a2e;
+      color-scheme:light
+    }
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:'Segoe UI',system-ui,sans-serif;background:var(--bg);color:var(--text);min-height:100vh;padding:20px}
+  .wrap{max-width:420px;margin:0 auto}
+  .header{display:flex;align-items:center;justify-content:center;position:relative;margin-bottom:20px}
+  .header h2{color:var(--title);font-size:1.4em;font-weight:300;letter-spacing:0.5px}
+  .header h2 span{color:var(--accent)}
+  .theme-btn{position:absolute;right:0;background:none;border:1px solid var(--card-border);border-radius:8px;padding:6px;cursor:pointer;color:var(--text-secondary);display:flex;align-items:center;justify-content:center;transition:border-color 0.2s,color 0.2s}
+  #themeToggle{right:40px}
+  .theme-btn:hover{border-color:var(--accent);color:var(--accent)}
+  .theme-btn svg{width:18px;height:18px}
+  .card{background:var(--card-bg);border-radius:12px;padding:20px;margin-bottom:16px;border:1px solid var(--card-border)}
+  .card h3{color:var(--accent);font-size:0.85em;text-transform:uppercase;letter-spacing:1px;margin-bottom:14px;font-weight:600}
+  label{display:block;font-size:0.85em;color:var(--text-secondary);margin-top:12px;margin-bottom:4px}
+  label:first-child{margin-top:0}
+  input,select{width:100%;padding:10px 12px;border-radius:8px;border:1px solid var(--input-border);background:var(--input-bg);color:var(--text);font-size:15px;outline:none;transition:border 0.2s}
+  input:focus,select:focus{border-color:var(--accent)}
+  select{appearance:none;-webkit-appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' fill='%234fc3f7' viewBox='0 0 16 16'%3E%3Cpath d='M8 11L3 6h10z'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 12px center;padding-right:36px}
+  select option{background:var(--input-bg);color:var(--text)}
+  input[type=range]{-webkit-appearance:none;appearance:none;height:6px;padding:0;border:none;border-radius:3px;background:var(--range-bg);cursor:pointer}
+  input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:20px;height:20px;border-radius:50%;background:var(--accent);border:2px solid var(--thumb-border);cursor:pointer}
+  .range-wrap{display:flex;align-items:center;gap:10px}
+  .range-wrap input[type=range]{flex:1}
+  .range-val{min-width:36px;text-align:center;font-size:14px;color:var(--accent);font-weight:600}
+  .night-row{display:flex;gap:10px}
+  .night-row>div{flex:1}
+  .btn{display:block;width:100%;padding:13px;border-radius:10px;border:none;font-size:16px;font-weight:600;cursor:pointer;transition:all 0.2s;margin-top:8px}
+  .btn-primary{background:linear-gradient(135deg,#4fc3f7,#0288d1);color:#fff}
+  .btn-primary:hover{opacity:0.9;transform:translateY(-1px)}
+  .stats{margin-bottom:16px}
+  .stat-row{display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid var(--stat-border)}
+  .stat-row:last-child{border:none}
+  .stat-row span{font-size:0.9em}
+  .stat-val{font-weight:700;font-size:1.1em}
+  .footer{text-align:center;margin-top:20px;color:var(--footer);font-size:12px}
+  .banner{position:fixed;top:0;left:0;right:0;padding:14px;text-align:center;
+    font-weight:600;font-size:15px;z-index:100;
+    transform:translateY(-100%);transition:transform 0.3s ease}
+  .banner.show{transform:translateY(0)}
+  .banner-ok{background:#2e7d32;color:#fff}
+  .banner-restart{background:#e65100;color:#fff}
+  .preview-btn{position:absolute;right:80px}
+  .ota-btn-header{position:absolute;right:0}
+  .ota-popover{display:none;position:absolute;left:50%;transform:translateX(-50%);
+    top:52px;z-index:50;width:100%;max-width:420px}
+  .ota-popover.show{display:block}
+  .preview-wrap{position:relative}
+  .preview-popover{display:none;position:absolute;left:50%;transform:translateX(-50%);
+    top:52px;z-index:50;background:transparent;border:none;
+    border-radius:0;padding:0;box-shadow:none;
+    width:max-content;max-width:95vw}
+  .preview-popover.show{display:block}
+  .preview-map{position:relative;width:968px;max-width:95vw;aspect-ratio:968/556;overflow:hidden}
+  .preview-map img{width:100%;height:100%;display:block}
+  .led-dot{position:absolute;width:0.62%;height:1.08%;border-radius:1px;
+    transform:translate(-50%,-50%);border:1px solid rgba(255,255,255,0.3);
+    opacity:0.15;transition:opacity 0.3s,background 0.3s,box-shadow 0.3s}
+  .info-row{display:flex;justify-content:space-between;padding:4px 0;font-size:0.8em;color:var(--text-secondary)}
+  .info-row span:last-child{color:var(--text);font-weight:500}
+  @keyframes spin{to{transform:rotate(360deg)}}
+  .spinner{display:none;width:20px;height:20px;border:2px solid var(--card-border);
+    border-top-color:var(--accent);border-radius:50%;animation:spin 0.8s linear infinite;
+    position:absolute;left:0}
+  .spinner.active{display:block}
+  .ssid-wrap{position:relative;display:flex;gap:4px}
+  .ssid-wrap input{flex:1}
+  .scan-btn{flex-shrink:0;width:42px;background:var(--input-bg);border:1px solid var(--input-border);border-radius:8px;cursor:pointer;color:var(--text-secondary);display:flex;align-items:center;justify-content:center;transition:border-color 0.2s,color 0.2s}
+  .scan-btn:hover{border-color:var(--accent);color:var(--accent)}
+  .scan-btn svg{width:18px;height:18px}
+  .wifi-list{display:none;position:relative;z-index:40;background:var(--card-bg);border:1px solid var(--card-border);border-radius:8px;max-height:240px;overflow-y:auto;box-shadow:0 4px 16px rgba(0,0,0,0.2);margin-top:4px}
+  .wifi-list.show{display:block}
+  .wifi-item{display:flex;justify-content:space-between;align-items:center;padding:8px 12px;cursor:pointer;border-bottom:1px solid var(--card-border)}
+  .wifi-item:last-child{border-bottom:none}
+  .wifi-item:hover{background:var(--accent);color:#fff}
+  .wifi-item:hover .wifi-meta span{color:inherit}
+  .wifi-item .ssid-name{font-weight:500}
+  .wifi-item .wifi-meta{font-size:0.8em;color:var(--text-secondary);display:flex;gap:8px}
+  .ota-progress{display:none;height:6px;background:var(--range-bg);border-radius:3px;margin:8px 0;overflow:hidden}
+  .ota-progress.active{display:block}
+  .ota-bar{height:100%;width:0;background:linear-gradient(135deg,#4fc3f7,#0288d1);border-radius:3px;transition:width 0.3s}
+  .ota-status{font-size:0.85em;color:var(--text-secondary);min-height:1.2em;margin-bottom:8px}
+  input[type=file]{padding:8px}
+  @media(max-width:470px){body{padding:10px}.card{padding:14px}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div id="banner" class="banner"></div>
+  <div class="preview-wrap">
+    <div class="header">
+      <div id="spinner" class="spinner"></div>
+      <h2>LED Mapa <span>CR</span></h2>
+      <button type="button" class="theme-btn preview-btn" id="previewBtn" title="Náhled mapy"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg></button>
+      <button type="button" class="theme-btn" id="themeToggle" title="Přepnout motiv"></button>
+      <button type="button" class="theme-btn ota-btn-header" id="otaToggle" title="Aktualizace firmware"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg></button>
+    </div>
+    <div id="otaPopover" class="ota-popover">
+      <div class="card">
+        <h3>Aktualizace firmware</h3>
+        <label for="otaFile">Soubor (.bin)</label>
+        <input type="file" id="otaFile" accept=".bin" />
+        <div class="ota-progress" id="otaProgress">
+          <div class="ota-bar" id="otaBar"></div>
+        </div>
+        <div class="ota-status" id="otaStatus"></div>
+        <button type="button" class="btn btn-primary" id="otaBtn" disabled>Nahrát firmware</button>
+      </div>
+    </div>
+    <div id="previewPopover" class="preview-popover">
+      <div class="preview-map" id="previewMap">
+        <img src="mapa.png" alt="Mapa CR" />
+      </div>
+    </div>
+  </div>
+  <form id="configForm">
+    <div class="card">
+      <h3>WiFi</h3>
+      <label for="ssid">SSID</label>
+      <div class="ssid-wrap">
+        <input type="text" id="ssid" name="ssid" value="" required />
+        <button type="button" class="scan-btn" id="scanBtn" title="Vyhledat WiFi sítě">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.55a11 11 0 0 1 14.08 0"/><path d="M1.42 9a16 16 0 0 1 21.16 0"/><path d="M8.53 16.11a6 6 0 0 1 6.95 0"/><line x1="12" y1="20" x2="12.01" y2="20"/></svg>
+        </button>
+      </div>
+      <div class="wifi-list" id="wifiList"></div>
+      <label for="password">Heslo</label>
+      <input type="password" id="password" name="password" placeholder="Ponechte prázdné pro zachování" value="" autocomplete="new-password" />
+    </div>
+    <div class="card">
+      <h3>Zobrazení</h3>
+      <label for="param">Parametr</label>
+      <select id="param" name="param">
+        <option value="h1">Teplota</option>
+        <option value="h2">Vlhkost</option>
+        <option value="h3">Tlak</option>
+        <option value="h4">Prašnost</option>
+        <option value="meteoradar">Meteoradar</option>
+      </select>
+      <label for="brightness">Jas LED</label>
+      <div class="range-wrap">
+        <input type="range" id="brightness" name="brightness" min="0" max="255" value="50" oninput="document.getElementById('brVal').textContent=this.value" />
+        <span class="range-val" id="brVal">50</span>
+      </div>
+      <label for="update">Interval aktualizace (s)</label>
+      <input type="number" id="update" name="update" min="10" max="3600" value="60" required />
+    </div>
+    <div class="card">
+      <h3>Noční režim</h3>
+      <div class="night-row">
+        <div>
+          <label for="nightStart">Od (hodina)</label>
+          <input type="number" id="nightStart" name="nightStart" min="0" max="23" value="22" required />
+        </div>
+        <div>
+          <label for="nightEnd">Do (hodina)</label>
+          <input type="number" id="nightEnd" name="nightEnd" min="0" max="23" value="6" required />
+        </div>
+      </div>
+      <label for="nightBright">Jas v noci (0 = vypnuto)</label>
+      <div class="range-wrap">
+        <input type="range" id="nightBright" name="nightBright" min="0" max="255" value="0" oninput="document.getElementById('nbVal').textContent=this.value" />
+        <span class="range-val" id="nbVal">0</span>
+      </div>
+    </div>
+    <div id="statsCard"></div>
+    <div id="infoCard"></div>
+    <button type="submit" class="btn btn-primary">Uložit</button>
+  </form>
+  <div class="footer">LaskaKit &copy; 2025</div>
+</div>
+<script>
+// --- HSV to RGB (shared by preview + stats) ---
+function hsvToRgb(h,s,v){
+  var i=Math.floor(h*6),f=h*6-i,p=v*(1-s),q=v*(1-f*s),t=v*(1-(1-f)*s);
+  var r,g,b;
+  switch(i%6){
+    case 0:r=v;g=t;b=p;break;case 1:r=q;g=v;b=p;break;case 2:r=p;g=v;b=t;break;
+    case 3:r=p;g=q;b=v;break;case 4:r=t;g=p;b=v;break;case 5:r=v;g=p;b=q;break;
+  }
+  return [Math.round(r*255),Math.round(g*255),Math.round(b*255)];
+}
+function statColor(val,min,max){
+  var hue;
+  if(max===min){hue=85}
+  else{hue=170-(val-min)/(max-min)*170}
+  if(hue<0)hue=0;if(hue>170)hue=170;
+  var rgb=hsvToRgb(hue/256,1,1);
+  return 'rgb('+rgb[0]+','+rgb[1]+','+rgb[2]+')';
+}
+
+// --- Spinner helpers ---
+var activeLoads=0;
+var spinnerShowTime=0;
+var spinnerTimer=null;
+function loadStart(){
+  activeLoads++;
+  if(!spinnerTimer){
+    spinnerShowTime=Date.now();
+    document.getElementById('spinner').classList.add('active');
+  }
+}
+function loadEnd(){
+  if(--activeLoads<=0){
+    activeLoads=0;
+    var elapsed=Date.now()-spinnerShowTime;
+    var remaining=Math.max(0,2000-elapsed);
+    clearTimeout(spinnerTimer);
+    spinnerTimer=setTimeout(function(){
+      document.getElementById('spinner').classList.remove('active');
+      spinnerTimer=null;
+    },remaining);
+  }
+}
+
+// --- Load config from API ---
+var refreshInterval=null;
+function loadConfig(){
+  loadStart();
+  fetch('/api/config').then(function(r){return r.json()}).then(function(cfg){
+    document.getElementById('ssid').value=cfg.ssid||'';
+    document.getElementById('param').value=cfg.param||'h1';
+    document.getElementById('brightness').value=cfg.brightness||50;
+    document.getElementById('brVal').textContent=cfg.brightness||50;
+    document.getElementById('update').value=cfg.update||60;
+    document.getElementById('nightStart').value=cfg.nightStart!=null?cfg.nightStart:22;
+    document.getElementById('nightEnd').value=cfg.nightEnd!=null?cfg.nightEnd:6;
+    document.getElementById('nightBright').value=cfg.nightBright||0;
+    document.getElementById('nbVal').textContent=cfg.nightBright||0;
+    var interval=(cfg.update||60)*1000;
+    if(refreshInterval)clearInterval(refreshInterval);
+    refreshInterval=setInterval(function(){loadStats();loadInfo()},interval);
+    loadEnd();
+  }).catch(function(){loadEnd()});
+}
+loadConfig();
+
+// --- Load stats from API ---
+function loadStats(){
+  loadStart();
+  fetch('/api/stats').then(function(r){return r.json()}).then(function(s){
+    var el=document.getElementById('statsCard');
+    if(!s.valid){el.innerHTML='';loadEnd();return}
+    var cMin=statColor(s.min,s.min,s.max);
+    var cAvg=statColor(s.avg,s.min,s.max);
+    var cMax=statColor(s.max,s.min,s.max);
+    el.innerHTML='<div class="card stats"><h3>Statistiky</h3>'
+      +'<div class="stat-row"><span>Min</span><span class="stat-val" style="color:'+cMin+'">'+s.min.toFixed(1)+'</span></div>'
+      +'<div class="stat-row"><span>Prům.</span><span class="stat-val" style="color:'+cAvg+'">'+s.avg.toFixed(1)+'</span></div>'
+      +'<div class="stat-row"><span>Max</span><span class="stat-val" style="color:'+cMax+'">'+s.max.toFixed(1)+'</span></div>'
+      +'</div>';
+    loadEnd();
+  }).catch(function(){loadEnd()});
+}
+loadStats();
+
+// --- Load info from API ---
+function loadInfo(){
+  loadStart();
+  fetch('/api/info').then(function(r){return r.json()}).then(function(info){
+    var el=document.getElementById('infoCard');
+    var uptimeMin=Math.floor(info.uptime/60);
+    var uptimeH=Math.floor(uptimeMin/60);
+    var uptimeStr=uptimeH>0?(uptimeH+'h '+(uptimeMin%60)+'m'):(uptimeMin+'m');
+    el.innerHTML='<div class="card"><h3>Zařízení</h3>'
+      +'<div class="info-row"><span>IP</span><span>'+info.ip+'</span></div>'
+      +'<div class="info-row"><span>MAC</span><span>'+info.mac+'</span></div>'
+      +(info.rssi?'<div class="info-row"><span>WiFi signál</span><span>'+info.rssi+' dBm</span></div>':'')
+      +(info.heap?'<div class="info-row"><span>Volná RAM</span><span>'+(info.heap/1024).toFixed(0)+' KB</span></div>':'')
+      +'<div class="info-row"><span>Uptime</span><span>'+uptimeStr+'</span></div>'
+      +(info.version?'<div class="info-row"><span>Firmware</span><span>v'+info.version+'</span></div>':'')
+      +'</div>';
+    loadEnd();
+  }).catch(function(){loadEnd()});
+}
+loadInfo();
+
+// --- Form submit via AJAX ---
+document.getElementById('configForm').addEventListener('submit', function(e) {
+  e.preventDefault();
+  var form = this;
+  var btn = form.querySelector('button[type=submit]');
+  btn.disabled = true;
+  fetch('/api/config', {
+    method: 'POST',
+    body: new URLSearchParams(new FormData(form))
+  })
+  .then(function(r) { return r.json(); })
+  .then(function(data) {
+    var banner = document.getElementById('banner');
+    if (data.restart) {
+      banner.className = 'banner banner-restart show';
+      banner.textContent = 'Uloženo. Restartuje se\u2026';
+      btn.disabled = true;
+      function pollReady() {
+        fetch('/api/info', {cache:'no-store'}).then(function(r) {
+          if (r.ok) location.reload();
+          else setTimeout(pollReady, 1000);
+        }).catch(function() {
+          setTimeout(pollReady, 1000);
+        });
+      }
+      setTimeout(pollReady, 3000);
+    } else {
+      banner.className = 'banner banner-ok show';
+      banner.textContent = 'Uloženo';
+      btn.disabled = false;
+      setTimeout(function(){ banner.classList.remove('show'); }, 2000);
+      loadConfig(); loadStats(); loadInfo();
+      var newInterval=(parseInt(document.getElementById('update').value)||60)*1000;
+      if(refreshInterval)clearInterval(refreshInterval);
+      refreshInterval=setInterval(function(){loadStats();loadInfo()},newInterval);
+    }
+  })
+  .catch(function() {
+    btn.disabled = false;
+    alert('Chyba při ukládání');
+  });
+});
+
+// --- WiFi scan ---
+(function(){
+  var scanBtn=document.getElementById('scanBtn');
+  var wifiList=document.getElementById('wifiList');
+  var ssidInput=document.getElementById('ssid');
+
+  scanBtn.addEventListener('click',function(){
+    wifiList.innerHTML='<div style="padding:12px;text-align:center">Skenování\u2026</div>';
+    wifiList.classList.add('show');
+    fetch('/api/wifi-scan')
+      .then(function(r){return r.json()})
+      .then(function(networks){
+        var seen={};
+        var unique=networks.filter(function(n){
+          if(!n.ssid||seen[n.ssid])return false;
+          seen[n.ssid]=true;
+          return true;
+        });
+        if(!unique.length){
+          wifiList.innerHTML='<div style="padding:12px;text-align:center">\u017d\u00e1dn\u00e9 s\u00edt\u011b</div>';
+          return;
+        }
+        wifiList.innerHTML=unique.map(function(n){
+          return '<div class="wifi-item" data-ssid="'+n.ssid.replace(/"/g,'&quot;')+'">'
+            +'<span class="ssid-name">'+escHtml(n.ssid)+(n.enc===0?'':' \ud83d\udd12')+'</span>'
+            +'<span class="wifi-meta"><span>'+rssiToPercent(n.rssi)+'%</span>'
+            +'<span>CH '+n.ch+'</span></span></div>';
+        }).join('');
+      })
+      .catch(function(){
+        wifiList.innerHTML='<div style="padding:12px;text-align:center">Chyba skenov\u00e1n\u00ed</div>';
+      });
+  });
+
+  wifiList.addEventListener('click',function(e){
+    var item=e.target.closest('.wifi-item');
+    if(item){
+      ssidInput.value=item.dataset.ssid;
+      wifiList.classList.remove('show');
+    }
+  });
+
+  document.addEventListener('click',function(e){
+    if(!wifiList.contains(e.target)&&e.target!==scanBtn&&!scanBtn.contains(e.target)){
+      wifiList.classList.remove('show');
+    }
+  });
+
+  document.addEventListener('keydown',function(e){
+    if(e.key==='Escape')wifiList.classList.remove('show');
+  });
+
+  function rssiToPercent(rssi){
+    return Math.max(0,Math.min(100,2*(rssi+100)));
+  }
+  function escHtml(s){
+    return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  }
+})();
+
+// --- Preview ---
+(function(){
+  var ledPos=[
+    [30.7,11.4],[42.9,11.8],[44.5,13.4],[28.2,15.0],[35.3,15.0],[46.8,18.3],
+    [25.3,16.8],[55.2,19.3],[29.6,20.4],[22.5,21.7],[19.3,23.5],[47.2,24.7],
+    [58.9,24.9],[40.7,26.0],[34.7,27.8],[24.6,28.0],[11.1,32.5],[74.1,31.9],
+    [54.2,33.7],[7.7,34.6],[42.8,34.3],[60.6,35.2],[29.2,36.1],[23.7,37.9],
+    [3.6,38.0],[78.3,40.7],[34.3,39.3],[53.5,40.4],[45.0,40.9],[62.7,42.5],
+    [84.7,42.5],[71.0,42.7],[28.5,43.6],[46.2,43.8],[53.7,43.6],[94.4,44.9],
+    [90.2,47.0],[7.3,49.7],[63.9,50.3],[37.6,50.6],[18.3,52.1],[21.6,52.1],
+    [91.9,52.4],[27.6,54.4],[86.7,55.8],[75.4,57.0],[50.5,57.6],[56.1,58.9],
+    [80.4,59.3],[73.4,61.8],[11.2,63.8],[45.6,64.5],[37.4,65.0],[50.7,65.6],
+    [16.9,65.9],[66.6,66.8],[86.7,66.6],[77.8,68.8],[29.7,69.5],[71.8,70.1],
+    [25.8,71.7],[81.8,71.9],[55.3,73.3],[66.3,73.8],[42.4,75.8],[79.4,78.0],
+    [27.5,81.2],[34.1,83.0],[74.0,86.3],[58.0,87.1],[32.1,89.2],[70.8,90.7]
+  ];
+  var distPos=[9,11,12,8,10,13,6,15,7,5,3,14,16,67,66,4,2,24,17,1,68,18,65,64,0,
+    25,76,20,69,19,27,23,73,70,21,29,28,59,22,71,61,63,30,72,31,26,48,
+    46,33,39,58,49,51,47,57,40,32,35,56,38,55,34,45,41,50,36,54,52,37,44,53,43];
+  var distNames={1:'Cheb',2:'Sokolov',3:'K.Vary',4:'Chomutov',5:'Louny',6:'Most',7:'Teplice',
+    8:'Litomerice',9:'Usti n.L.',10:'Decin',11:'C.Lipa',12:'Liberec',13:'Jablonec',14:'Semily',
+    15:'Jicin',16:'Trutnov',17:'Nachod',18:'Hr.Kralove',19:'Rychnov',20:'Usti n.O.',
+    21:'Pardubice',22:'Chrudim',23:'Svitavy',24:'Sumperk',25:'Jesenik',26:'Bruntal',
+    27:'Olomouc',28:'Opava',29:'Ostrava',30:'Karvina',31:'Fr.-Mistek',32:'N.Jicin',
+    33:'Vsetin',34:'Prerov',35:'Zlin',36:'Kromeriz',37:'Uh.Hradiste',38:'Hodonin',
+    39:'Vyskov',40:'Prostejov',41:'Blansko',42:'Brno',44:'Breclav',45:'Znojmo',
+    46:'Trebic',47:'Zdar n.S.',48:'Jihlava',49:'Havl.Brod',50:'Pelhrimov',
+    51:'J.Hradec',52:'Tabor',53:'C.Budejovice',54:'C.Krumlov',55:'Prachatice',
+    56:'Strakonice',57:'Pisek',58:'Klatovy',59:'Domazlice',60:'Tachov',
+    62:'Plzen',64:'Rokycany',65:'Rakovnik',66:'Kladno',67:'Melnik',68:'Ml.Boleslav',
+    69:'Nymburk',70:'Kolin',71:'Kutna Hora',72:'Benesov',73:'Pribram',74:'Beroun',77:'Praha'};
+  var map=document.getElementById('previewMap');
+  for(var i=0;i<ledPos.length;i++){
+    var d=document.createElement('div');
+    d.className='led-dot';
+    d.id='led'+i;
+    d.style.left=ledPos[i][0]+'%';
+    d.style.top=ledPos[i][1]+'%';
+    d.title='LED '+i+': '+(distNames[distPos[i]+1]||'?');
+    map.appendChild(d);
+  }
+  var URL_MAIN='/api/okresy';
+  var URL_RADAR='/api/srazky';
+
+  function applyLed(i,r,g,b){
+    var el=document.getElementById('led'+i);
+    if(!el)return;
+    var on=r||g||b;
+    el.style.background='rgb('+r+','+g+','+b+')';
+    el.style.opacity=on?'1':'0.15';
+    el.style.boxShadow=on?'0 0 6px rgb('+r+','+g+','+b+')':'none';
+  }
+
+  var popover=document.getElementById('previewPopover');
+  var pvBtn=document.getElementById('previewBtn');
+  var hideTimer=null;
+  function showPreview(){
+    clearTimeout(hideTimer);
+    popover.classList.add('show');
+    var param=document.getElementById('param').value;
+    var isRadar=param==='meteoradar';
+    var url=isRadar?URL_RADAR:URL_MAIN;
+
+    fetch(url).then(function(r){return r.json()}).then(function(data){
+      if(isRadar){
+        var seznam=data.seznam||data;
+        var byId={};
+        for(var j=0;j<seznam.length;j++){
+          byId[seznam[j].id]=seznam[j];
+        }
+        for(var i=0;i<72;i++){
+          var m=byId[i];
+          if(m){applyLed(i,m.r||0,m.g||0,m.b||0)}
+          else{applyLed(i,0,0,0)}
+        }
+      }else{
+        var arr=data;
+        var vals=new Array(77);
+        var minV=1e6,maxV=-1e6;
+        for(var j=0;j<arr.length;j++){
+          var idx=arr[j].id-1;
+          if(idx<0||idx>=77)continue;
+          var v=arr[j][param];
+          if(typeof v==='number'){
+            vals[idx]=v;
+            if(v<minV)minV=v;
+            if(v>maxV)maxV=v;
+          }else{vals[idx]=0}
+        }
+        for(var i=0;i<72;i++){
+          var dIdx=distPos[i];
+          var val=vals[dIdx]||0;
+          var hue;
+          if(maxV===minV){hue=85}
+          else{hue=170-(val-minV)/(maxV-minV)*170}
+          if(hue<0)hue=0;if(hue>170)hue=170;
+          var rgb=hsvToRgb(hue/256,1,1);
+          applyLed(i,rgb[0],rgb[1],rgb[2]);
+        }
+      }
+    }).catch(function(){});
+  }
+  function scheduleHide(){hideTimer=setTimeout(function(){popover.classList.remove('show')},300)}
+  pvBtn.addEventListener('mouseenter',showPreview);
+  pvBtn.addEventListener('mouseleave',scheduleHide);
+  popover.addEventListener('mouseenter',function(){clearTimeout(hideTimer)});
+  popover.addEventListener('mouseleave',function(){popover.classList.remove('show')});
+  pvBtn.addEventListener('click',function(){
+    if(popover.classList.contains('show')){popover.classList.remove('show')}
+    else{showPreview()}
+  });
+})();
+
+// --- OTA update ---
+(function(){
+  var otaToggle = document.getElementById('otaToggle');
+  var otaPopover = document.getElementById('otaPopover');
+  var fileInput = document.getElementById('otaFile');
+  var btn = document.getElementById('otaBtn');
+  var progress = document.getElementById('otaProgress');
+  var bar = document.getElementById('otaBar');
+  var status = document.getElementById('otaStatus');
+
+  otaToggle.addEventListener('click', function() {
+    otaPopover.classList.toggle('show');
+  });
+  document.addEventListener('click', function(e) {
+    if (!otaPopover.contains(e.target) && e.target !== otaToggle && !otaToggle.contains(e.target)) {
+      otaPopover.classList.remove('show');
+    }
+  });
+  document.addEventListener('keydown', function(e) {
+    if (e.key === 'Escape') otaPopover.classList.remove('show');
+  });
+
+  fileInput.addEventListener('change', function() {
+    btn.disabled = !fileInput.files.length;
+    status.textContent = '';
+  });
+
+  btn.addEventListener('click', function() {
+    var file = fileInput.files[0];
+    if (!file) return;
+
+    var formData = new FormData();
+    formData.append('firmware', file);
+
+    var xhr = new XMLHttpRequest();
+    xhr.open('POST', '/api/ota-update');
+
+    progress.classList.add('active');
+    btn.disabled = true;
+    status.textContent = 'Nahrávání…';
+
+    xhr.upload.addEventListener('progress', function(e) {
+      if (e.lengthComputable) {
+        var pct = Math.round(e.loaded / e.total * 100);
+        bar.style.width = pct + '%';
+        status.textContent = 'Nahrávání… ' + pct + '%';
+      }
+    });
+
+    xhr.onload = function() {
+      try {
+        var res = JSON.parse(xhr.responseText);
+        if (res.ok) {
+          bar.style.width = '100%';
+          status.textContent = '';
+          var banner = document.getElementById('banner');
+          banner.className = 'banner banner-restart show';
+          banner.textContent = 'Firmware nahrán. Restartuje se\u2026';
+          function pollReady() {
+            fetch('/api/info', {cache:'no-store'}).then(function(r) {
+              if (r.ok) location.reload();
+              else setTimeout(pollReady, 1000);
+            }).catch(function() { setTimeout(pollReady, 1000); });
+          }
+          setTimeout(pollReady, 3000);
+        } else {
+          status.textContent = 'Chyba: ' + (res.error || 'neznámá');
+          btn.disabled = false;
+        }
+      } catch(e) {
+        status.textContent = 'Chyba komunikace';
+        btn.disabled = false;
+      }
+    };
+
+    xhr.onerror = function() {
+      status.textContent = 'Chyba připojení';
+      btn.disabled = false;
+    };
+
+    xhr.send(formData);
+  });
+})();
+
+// --- Theme toggle ---
+(function(){
+  var icons={
+    dark:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>',
+    light:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>',
+    system:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="3" width="20" height="14" rx="2" ry="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>'
+  };
+  var order=['dark','light','system'];
+  var btn=document.getElementById('themeToggle');
+  var theme=localStorage.getItem('theme')||'system';
+  function apply(t){
+    theme=t;
+    document.documentElement.setAttribute('data-theme',t);
+    btn.innerHTML=icons[t];
+    localStorage.setItem('theme',t);
+  }
+  apply(theme);
+  btn.addEventListener('click',function(){
+    apply(order[(order.indexOf(theme)+1)%3]);
+  });
+})();
+</script>
+</body>
+</html>
